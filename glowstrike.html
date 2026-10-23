@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#090b20">
+<meta name="description" content="Glow Strike : jeu de réflexes néon. Touche les cibles, enchaîne les combos, évite les pièges.">
+<!-- APPLICATION : ces lignes permettent d'installer le jeu sur l'écran d'accueil du téléphone -->
+<link rel="manifest" href="glowstrike-manifest.json">
+<link rel="icon" type="image/png" href="glowstrike-192.png">
+<link rel="apple-touch-icon" href="glowstrike-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Glow Strike">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Glow Strike — Neon Reflex</title>
+<style>
+:root{--cyan:#52f7ff;--pink:#ff3d9a;--gold:#ffd166;--bg:#090b20;--panel:rgba(17,22,52,.88);--text:#f3f7ff}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 20% 10%,#24235a 0,#10142f 38%,var(--bg) 80%);color:var(--text);overflow:hidden;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer;touch-action:manipulation}
+.screen{position:absolute;inset:0;overflow:auto;padding:22px 16px 30px}
+.hidden{display:none!important}
+.brand{font-size:clamp(30px,8vw,48px);font-weight:950;letter-spacing:1px;line-height:1.05;margin:10px 0;color:white;text-shadow:0 0 14px #52f7ff88,0 0 30px #ff3d9a55}
+.brand span{color:var(--cyan)}
+.subtitle{color:#bac5e8;max-width:520px;margin:10px auto 20px;line-height:1.5}
+.panel{max-width:520px;margin:16px auto;padding:17px;border:1px solid #4b5b9a66;border-radius:20px;background:var(--panel);box-shadow:0 14px 40px #0003;backdrop-filter:blur(10px)}
+.section-title{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#a9b6e7;margin:0 0 12px}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.btn{border:1px solid #52649c;background:#1a2147;color:white;border-radius:14px;padding:13px 12px;font-weight:750;transition:transform .12s,border-color .12s,filter .12s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(135deg,#52f7ff,#8a7dff);color:#091026;border:0;box-shadow:0 0 20px #52f7ff33}
+.btn.pink{background:linear-gradient(135deg,#ff3d9a,#a66bff);border:0;color:white}
+.btn small{display:block;font-size:11px;font-weight:500;opacity:.8;margin-top:4px}
+.row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat{padding:10px 5px;border-radius:13px;background:#080d25;border:1px solid #3c4c8266}
+.stat strong{display:block;font-size:21px;color:var(--cyan)}
+.stat span{display:block;font-size:11px;color:#aeb9dc;margin-top:3px}
+.progress{height:9px;background:#070a1b;border-radius:99px;overflow:hidden;margin:10px 0 5px;border:1px solid #35416d}
+.progress div{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),#a77cff);transition:width .2s}
+.muted{color:#aeb9dc;font-size:12px;line-height:1.5}
+#game{padding:0;overflow:hidden}
+#hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:10px 9px 12px;background:linear-gradient(#080b20f2,#080b20b8,transparent);display:grid;grid-template-columns:repeat(4,1fr);gap:5px;text-align:center}
+.hud-box{font-size:clamp(11px,3.1vw,15px);font-weight:800;text-shadow:0 2px 5px #000}
+.hud-box span{display:block;font-size:10px;color:#aeb9dc;font-weight:600;margin-bottom:2px}
+#playfield{position:absolute;inset:0;overflow:hidden;background:
+ radial-gradient(circle at 15% 25%,rgba(82,247,255,.10),transparent 28%),
+ radial-gradient(circle at 85% 75%,rgba(255,61,154,.10),transparent 30%),
+ linear-gradient(145deg,#0b1230,#10102a 55%,#090b20);transition:background .35s}
+#playfield:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.38;
+ background-image:linear-gradient(rgba(130,160,255,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(130,160,255,.09) 1px,transparent 1px);
+ background-size:32px 32px;mask-image:linear-gradient(to bottom,transparent,black 18%,black 85%,transparent)}
+#playfield:after{content:"";position:absolute;inset:-25%;pointer-events:none;opacity:.25;
+ background:repeating-radial-gradient(ellipse at center,transparent 0 45px,rgba(82,247,255,.22) 46px 47px,transparent 48px 82px);
+ animation:arenaPulse 12s linear infinite}
+@keyframes arenaPulse{from{transform:rotate(0deg) scale(1)}to{transform:rotate(360deg) scale(1.05)}}
+#playfield.arena-solar{background:radial-gradient(ellipse at 50% 100%,#622c1c 0,#29162c 38%,#100d25 78%)}
+#playfield.arena-purple{background:radial-gradient(ellipse at 50% 50%,#36206c 0,#17133b 48%,#080b20 100%)}
+#playfield.arena-toxic{background:radial-gradient(ellipse at 50% 100%,#234d28 0,#102c2a 40%,#07151e 100%)}
+#playfield.arena-solar:before{background-image:linear-gradient(#ffb14a18 1px,transparent 1px),linear-gradient(90deg,#ffb14a18 1px,transparent 1px)}
+#playfield.arena-purple:before{background-image:linear-gradient(#c084fc1b 1px,transparent 1px),linear-gradient(90deg,#c084fc1b 1px,transparent 1px)}
+#playfield.arena-toxic:before{background-image:linear-gradient(#b7ff4a1b 1px,transparent 1px),linear-gradient(90deg,#b7ff4a1b 1px,transparent 1px)}
+#hint{position:absolute;z-index:1;top:95px;left:0;right:0;text-align:center;color:#aeb9dc;font-size:12px;pointer-events:none;opacity:.8}
+.target{position:absolute;border:0;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 18px currentColor,0 0 38px currentColor;animation:pop .16s ease-out;touch-action:manipulation}
+.target:after{content:"";position:absolute;inset:8px;border:2px solid #ffffff88;border-radius:50%;pointer-events:none}
+.target.normal{background:radial-gradient(circle at 30% 25%,#fff,#ff5b9d 20%,#ff1c70 65%,#9e124a);color:#ff3d9a}
+.target.gold{background:radial-gradient(circle at 30% 25%,#fff,#fff0a0 20%,#ffbd39 65%,#a45a00);color:#ffd166}
+.target.combo{background:radial-gradient(circle at 30% 25%,#fff,#b7ffff 20%,#35e8ff 65%,#087ba5);color:#52f7ff}
+.target.trap{background:radial-gradient(circle at 30% 25%,#fff,#c2a7ff 20%,#8554ff 65%,#3b1b94);color:#a77cff}
+.target-label{font-size:18px;font-weight:1000;color:white;text-shadow:0 2px 8px #000;pointer-events:none}
+@keyframes pop{from{transform:scale(.65);opacity:.4}to{transform:scale(1);opacity:1}}
+@keyframes fadeout{to{opacity:.2;transform:scale(.8)}}
+.particle{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;animation:burst .42s ease-out forwards}
+@keyframes burst{to{transform:translate(var(--x),var(--y)) scale(.1);opacity:0}}
+#overlay{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#06091bc9;padding:20px;text-align:center}
+#overlay .panel{width:min(100%,420px)}
+#overlay h2{font-size:30px;margin:4px 0 8px}
+#finalScore{font-size:42px;font-weight:950;color:var(--cyan);text-shadow:0 0 20px #52f7ff55}
+#toast{position:absolute;z-index:4;left:50%;top:45%;transform:translate(-50%,-50%);font-size:22px;font-weight:900;text-align:center;pointer-events:none;text-shadow:0 0 16px currentColor}
+footer{font-size:11px;color:#7481ac;margin:18px auto 0;max-width:500px}
+@media(max-height:680px){.screen{padding-top:12px}.brand{margin:4px 0}.subtitle{margin:5px auto 12px}.panel{margin:9px auto;padding:12px}.btn{padding:10px}.stat strong{font-size:18px}}
+/* APPLICATION : empêche de recharger la page par accident en glissant le doigt vers le bas */
+html,body{overscroll-behavior:none}
+#installPanel,#iosHint{padding:10px 12px}
+</style>
+</head>
+<body>
+<section id="menu" class="screen">
+  <div style="text-align:center">
+    <div class="brand">GLOW <span>STRIKE</span></div>
+    <div class="subtitle">Teste tes réflexes. Enchaîne les combos. Débloque des niveaux. <b>Ne touche pas aux pièges !</b></div>
+  </div>
+  <div class="panel">
+    <p class="section-title">Choisis ton mode</p>
+    <div class="modes">
+      <button class="btn primary" onclick="startGame('classique')">⚡ Classique<small>60 secondes</small></button>
+      <button class="btn pink" onclick="startGame('hardcore')">💀 Hardcore<small>Petit cercle, rythme rapide</small></button>
+      <button class="btn" onclick="startGame('infini')">♾️ Infini<small>Joue jusqu'à perdre</small></button>
+      <button class="btn" onclick="startGame('defi')">🎯 Défi<small>Objectif : 30 touches</small></button>
+    </div>
+  </div>
+  <div class="panel hidden" id="installPanel">
+    <button class="btn primary" id="installBtn" style="width:100%">📲 Installer l'application<small>Joue comme dans une vraie appli, même sans internet</small></button>
+  </div>
+  <div class="panel hidden" id="iosHint"><div class="muted" style="text-align:center">Pour installer sur iPhone : touche <b>Partager</b> puis <b>« Sur l'écran d'accueil »</b>.</div></div>
+  <div class="panel">
+    <p class="section-title">Ta progression</p>
+    <div class="stat-grid">
+      <div class="stat"><strong id="level">1</strong><span>Niveau</span></div>
+      <div class="stat"><strong id="xp">0</strong><span>XP</span></div>
+      <div class="stat"><strong id="best">0</strong><span>Record</span></div>
+    </div>
+    <div class="progress"><div id="xpbar"></div></div>
+    <div class="muted" id="xptext">0 / 100 XP vers le prochain niveau</div>
+    <div class="row" style="margin-top:13px">
+      <button class="btn" onclick="showThemes()">🎨 Thèmes</button>
+      <button class="btn" onclick="toggleSound()" id="soundBtn">🔊 Son : oui</button>
+      <button class="btn" onclick="showMissions()">📋 Missions</button>
+    </div>
+  </div>
+  <div class="panel hidden" id="extraPanel"></div>
+  <footer>Glow Strike • Version de développement • Progression enregistrée sur cet appareil</footer>
+</section>
+
+<section id="game" class="hidden">
+  <div id="hud">
+    <div class="hud-box"><span>SCORE</span><b id="score">0</b></div>
+    <div class="hud-box"><span>COMBO</span><b id="combo">x1</b></div>
+    <div class="hud-box"><span>TEMPS</span><b id="timer">60s</b></div>
+    <div class="hud-box"><span>VIES</span><b id="lives">❤️❤️❤️</b></div>
+  </div>
+  <div id="playfield"><div id="hint">Touche les cibles • Laisse les pièges violets disparaître</div></div>
+  <div id="toast"></div>
+  <div id="overlay" class="hidden">
+    <div class="panel">
+      <div style="font-size:12px;letter-spacing:2px;color:#aeb9dc">PARTIE TERMINÉE</div>
+      <h2 id="endTitle">Bien joué !</h2>
+      <div id="finalScore">0</div>
+      <p id="endReason" class="muted"></p>
+      <div class="stat-grid">
+        <div class="stat"><strong id="endCombo">x1</strong><span>Meilleur combo</span></div>
+        <div class="stat"><strong id="endHits">0</strong><span>Cibles touchées</span></div>
+        <div class="stat"><strong id="endXP">0</strong><span>XP gagnée</span></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" onclick="restartGame()">🔁 Rejouer</button>
+        <button class="btn" onclick="backToMenu()">⌂ Menu</button>
+        <button class="btn" onclick="shareScore()">📲 Partager</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+const MODES={
+ classique:{time:60,startDelay:1450,minDelay:650,size:82,lives:3},
+ hardcore:{time:60,startDelay:950,minDelay:360,size:58,lives:3},
+ infini:{time:null,startDelay:1450,minDelay:600,size:82,lives:3},
+ defi:{time:75,startDelay:1250,minDelay:520,size:76,lives:2,target:30}
+};
+const THEMES=[
+ {name:'Neon Pulse',desc:'Cyan et rose',a:'#52f7ff',b:'#ff3d9a'},
+ {name:'Solar Flare',desc:'Débloqué au niveau 3',a:'#ffd166',b:'#ff6b35',level:3},
+ {name:'Purple Void',desc:'Débloqué au niveau 5',a:'#c084fc',b:'#7c3aed',level:5},
+ {name:'Toxic Rush',desc:'Débloqué au niveau 8',a:'#b7ff4a',b:'#16c784',level:8}
+];
+const $=id=>document.getElementById(id);
+let score=0,combo=1,maxCombo=1,lives=3,hits=0,timeLeft=60,mode='classique',playing=false;
+let timerId=null,targetId=null,targetEl=null,targetKind='normal',targetSize=82,delay=1200,hitTimer=null;
+let xp=Number(localStorage.getItem('gs_xp')||0),best=Number(localStorage.getItem('gs_best')||0),level=Number(localStorage.getItem('gs_level')||1);
+let sound=localStorage.getItem('gs_sound')!=='off',themeIndex=Number(localStorage.getItem('gs_theme')||0),sessionXP=0;
+const field=$('playfield');
+function save(){localStorage.setItem('gs_xp',xp);localStorage.setItem('gs_best',best);localStorage.setItem('gs_level',level);localStorage.setItem('gs_theme',themeIndex);localStorage.setItem('gs_sound',sound?'on':'off')}
+function renderProgress(){
+ $('level').textContent=level;$('xp').textContent=xp;$('best').textContent=best;
+ const within=xp%100;$('xpbar').style.width=within+'%';$('xptext').textContent=`${within} / 100 XP vers le prochain niveau`;
+ $('soundBtn').textContent=sound?'🔊 Son : oui':'🔇 Son : non';
+ const t=THEMES[themeIndex]||THEMES[0];document.documentElement.style.setProperty('--cyan',t.a);document.documentElement.style.setProperty('--pink',t.b);
+ field.classList.remove('arena-solar','arena-purple','arena-toxic');
+ if(themeIndex===1)field.classList.add('arena-solar');
+ if(themeIndex===2)field.classList.add('arena-purple');
+ if(themeIndex===3)field.classList.add('arena-toxic');
+}
+function beep(freq=500,duration=.07,type='sine'){
+ if(!sound)return;try{const C=window.AudioContext||window.webkitAudioContext;const c=beep.ctx||(beep.ctx=new C());if(c.state==='suspended')c.resume();const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.12,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+duration);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+duration)}catch(e){}
+}
+function toggleSound(){sound=!sound;save();renderProgress();beep(600)}
+function vibrate(n){try{if(sound&&navigator.vibrate)navigator.vibrate(n)}catch(e){}}
+function startGame(selected){
+ mode=selected;const cfg=MODES[mode];score=0;combo=1;maxCombo=1;lives=cfg.lives;hits=0;timeLeft=cfg.time;targetSize=cfg.size;delay=cfg.startDelay;sessionXP=0;playing=true;
+ clearInterval(timerId);clearTimeout(targetId);clearTimeout(hitTimer);field.querySelectorAll('.target,.particle').forEach(e=>e.remove());
+ $('menu').classList.add('hidden');$('game').classList.remove('hidden');$('overlay').classList.add('hidden');
+ $('score').textContent='0';$('combo').textContent='x1';$('timer').textContent=cfg.time===null?'♾️':timeLeft+'s';updateLives();
+ $('hint').textContent=mode==='defi'?'Objectif : 30 cibles • Ne touche pas les pièges violets':'Touche les cibles • Laisse les pièges violets disparaître';
+ placeTarget();
+ if(cfg.time!==null){timerId=setInterval(()=>{if(!playing)return;timeLeft--; $('timer').textContent=timeLeft+'s';if(timeLeft<=0)endGame(mode==='defi'?'Temps écoulé !':'Temps écoulé !')},1000)}
+ beep(500,.1);
+}
+function restartGame(){startGame(mode)}
+function updateLives(){$('lives').textContent='❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,MODES[mode].lives-lives))}
+function placeTarget(){
+ if(!playing)return;
+ if(targetEl){targetEl.remove();targetEl=null}
+ const r=Math.random();targetKind=r<.12?'trap':r<.24?'combo':r<.38?'gold':'normal';
+ const size=targetSize;const el=document.createElement('button');el.className='target '+targetKind;el.setAttribute('aria-label','Cible');
+ el.style.width=size+'px';el.style.height=size+'px';el.innerHTML='<span class="target-label">'+({normal:'+',gold:'★',combo:'⚡',trap:'!'})[targetKind]+'</span>';
+ const topPad=Math.max(95,$('hud').offsetHeight+14),pad=10;
+ const maxX=Math.max(pad,innerWidth-size-pad),maxY=Math.max(topPad,innerHeight-size-pad);
+ el.style.left=(pad+Math.random()*(maxX-pad))+'px';el.style.top=(topPad+Math.random()*(maxY-topPad))+'px';
+ el.addEventListener('pointerdown',hitTarget);field.appendChild(el);targetEl=el;
+ el.style.animation=`fadeout ${Math.max(250,delay)}ms linear forwards`;
+ targetId=setTimeout(missedTarget,delay);
+}
+function hitTarget(e){
+ if(!playing)return;e.preventDefault();clearTimeout(targetId);
+ const rect=targetEl.getBoundingClientRect();const color=getComputedStyle(targetEl).color;burst(rect.left+rect.width/2,rect.top+rect.height/2,color);
+ if(targetKind==='trap'){
+  // Un piège doit être évité : le toucher pénalise, mais l'éviter ne fait rien.
+  lives--;combo=1;updateLives();$('combo').textContent='x1';beep(120,.18,'sawtooth');vibrate(100);toast('PIÈGE TOUCHÉ ! -1 VIE','var(--pink)');
+  if(lives<=0){endGame('Tu as touché trop de pièges.');return}
+ }else{
+  hits++;combo++;maxCombo=Math.max(maxCombo,combo);
+  let points=5*combo;if(targetKind==='gold')points+=35;if(targetKind==='combo'){combo+=2;maxCombo=Math.max(maxCombo,combo);points+=20}
+  score+=points;$('score').textContent=score;$('combo').textContent='x'+combo;beep(targetKind==='gold'?850:targetKind==='combo'?1000:450,.07);vibrate(12);
+  if(targetKind==='gold')toast('+'+points+' ★','var(--gold)');else if(targetKind==='combo')toast('COMBO BOOST ⚡','var(--cyan)');
+  if(mode==='hardcore')targetSize=Math.max(30,targetSize-1.5);
+  delay=Math.max(MODES[mode].minDelay,MODES[mode].startDelay-hits*13);
+  if(mode==='defi'&&hits>=MODES.defi.target){endGame('Défi réussi : 30 cibles touchées !');return}
+ }
+ placeTarget();
+}
+function missedTarget(){
+ if(!playing)return;
+ // Les pièges sont faits pour être évités : s'ils disparaissent sans être touchés, aucune pénalité.
+ if(targetKind==='trap'){toast('PIÈGE ÉVITÉ !','var(--cyan)');placeTarget();return}
+ lives--;combo=1;$('combo').textContent='x1';updateLives();beep(160,.15,'sawtooth');vibrate(80);toast('CIBLE RATÉE ! -1 VIE','var(--pink)');
+ if(lives<=0){endGame('Tu as manqué trop de cibles.');return}placeTarget();
+}
+function burst(x,y,color){for(let i=0;i<9;i++){const p=document.createElement('i');p.className='particle';p.style.left=x+'px';p.style.top=y+'px';p.style.background=color;const a=Math.PI*2*i/9,d=25+Math.random()*45;p.style.setProperty('--x',Math.cos(a)*d+'px');p.style.setProperty('--y',Math.sin(a)*d+'px');field.appendChild(p);setTimeout(()=>p.remove(),450)}}
+let toastTimer;function toast(msg,color){$('toast').textContent=msg;$('toast').style.color=color;$('toast').style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity='0',550)}
+function endGame(reason){
+ if(!playing)return;playing=false;clearInterval(timerId);clearTimeout(targetId);clearTimeout(hitTimer);if(targetEl)targetEl.remove();
+ const newRecord=score>best;if(newRecord)best=score;
+ sessionXP=Math.max(5,Math.floor(score/10)+hits);const oldLevel=level;xp+=sessionXP;level=Math.floor(xp/100)+1;save();renderProgress();
+ $('endTitle').textContent=mode==='defi'&&hits>=30?'DÉFI RÉUSSI !':newRecord?'NOUVEAU RECORD !':'BIEN JOUÉ !';
+ $('finalScore').textContent=score;$('endReason').textContent=reason+(newRecord?' • Nouveau record personnel !':'');
+ $('endCombo').textContent='x'+maxCombo;$('endHits').textContent=hits;$('endXP').textContent='+'+sessionXP;
+ if(level>oldLevel)$('endReason').textContent+=' Niveau supérieur débloqué ! Niveau '+level+'.';
+ $('overlay').classList.remove('hidden');beep(260,.2,'triangle');
+}
+function backToMenu(){playing=false;clearInterval(timerId);clearTimeout(targetId);if(targetEl)targetEl.remove();$('overlay').classList.add('hidden');$('game').classList.add('hidden');$('menu').classList.remove('hidden');renderProgress()}
+function showThemes(){
+ const box=$('extraPanel');box.classList.remove('hidden');box.innerHTML='<p class="section-title">Thèmes visuels</p><div class="modes">'+THEMES.map((t,i)=>{const unlocked=level>=(t.level||1);return `<button class="btn ${i===themeIndex?'primary':''}" ${unlocked?'':'disabled'} onclick="chooseTheme(${i})">${unlocked?'🎨':'🔒'} ${t.name}<small>${unlocked?(i===themeIndex?'Thème actif':'Activer'):('Débloqué au niveau '+t.level)}</small></button>`}).join('')+'</div><p class="muted">Gagne de l’XP en jouant pour débloquer les thèmes.</p>';
+}
+function chooseTheme(i){if(level<(THEMES[i].level||1))return;themeIndex=i;save();renderProgress();showThemes()}
+function showMissions(){
+ const box=$('extraPanel');box.classList.remove('hidden');box.innerHTML='<p class="section-title">Missions de progression</p><div class="stat-grid"><div class="stat"><strong>30</strong><span>Toucher 30 cibles en mode Défi</span></div><div class="stat"><strong>20×</strong><span>Atteindre un combo de 20</span></div><div class="stat"><strong>1 000</strong><span>Faire 1 000 points en une partie</span></div></div><p class="muted">Les objectifs sont des défis personnels. Les récompenses d’XP sont gagnées à la fin de chaque partie.</p>';
+}
+async function shareScore(){
+ const msg=`J'ai marqué ${score} points sur Glow Strike ⚡ avec un combo max de x${maxCombo}. Tu peux faire mieux ?`;
+ try{if(navigator.share)await navigator.share({title:'Glow Strike',text:msg});else{await navigator.clipboard.writeText(msg);alert('Score copié ! Tu peux le partager.')}}catch(e){}
+}
+renderProgress();
+
+/* ================= APPLICATION (lignes ajoutées, le jeu ci-dessus n'est pas modifié) =================
+   1) Bouton « Installer l'application » : apparaît tout seul quand le téléphone le permet.
+   2) Fonctionnement sans internet : le service worker garde le jeu en mémoire.
+   3) Petit verrou de 0,7 s après la fin d'une partie : en tapant vite on ne relance pas ou ne quitte pas par erreur. */
+(function(){
+ const panel=document.getElementById('installPanel'),btn=document.getElementById('installBtn'),ios=document.getElementById('iosHint');
+ let evt=null;
+ const dejaInstallee=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+ if(!dejaInstallee){
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();evt=e;panel.classList.remove('hidden')});
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent))ios.classList.remove('hidden');
+ }
+ btn.addEventListener('click',async()=>{
+  if(!evt)return;
+  evt.prompt();
+  try{await evt.userChoice}catch(e){}
+  evt=null;panel.classList.add('hidden');
+ });
+ window.addEventListener('appinstalled',()=>{evt=null;panel.classList.add('hidden')});
+ if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('glowstrike-sw.js').catch(()=>{})})}
+ const ov=document.getElementById('overlay');let lockUntil=0;
+ new MutationObserver(()=>{if(!ov.classList.contains('hidden'))lockUntil=Date.now()+700}).observe(ov,{attributes:true,attributeFilter:['class']});
+ ov.addEventListener('click',e=>{if(Date.now()<lockUntil){e.stopPropagation();e.preventDefault()}},true);
+})();
+</script>
+</body>
+</html>

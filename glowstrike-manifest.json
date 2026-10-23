@@ -1,0 +1,41 @@
+{
+  "name": "Glow Strike",
+  "short_name": "Glow Strike",
+  "description": "Jeu de réflexes néon : touche les cibles, enchaîne les combos, évite les pièges.",
+  "lang": "fr",
+  "start_url": "./glowstrike.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090b20",
+  "theme_color": "#090b20",
+  "categories": [
+    "games"
+  ],
+  "icons": [
+    {
+      "src": "glowstrike-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "glowstrike-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "glowstrike-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "glowstrike-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
